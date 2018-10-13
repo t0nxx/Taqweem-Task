@@ -127,25 +127,9 @@ router.put("/update/me", Auth, async (req, res) => {
 router.delete("/delete/me", Auth, async (req, res) => {
   try {
     const user = await Users.findOneAndRemove({ _id: req.user._id });
-    res.json(`ok user ${user.username} deleted`);
+    res.json(`ok user  deleted`);
   } catch (error) {
     res.json(error.message);
-  }
-});
-/* for testing */
-router.post("/upload", async (req, res) => {
-  try {
-    upload(req, res, err => {
-      if (err) {
-        if (err.code === "LIMIT_FILE_SIZE")
-          return res.status(400).json("Error : file shouldn't exceed 300KB");
-        return res.status(400).json(err);
-      } else if (!req.file) return res.json("Error : no file selected");
-      const avatarPath = req.file.path.replace(/\\/g, "/");
-      res.json(avatarPath);
-    });
-  } catch (error) {
-    res.json(error);
   }
 });
 

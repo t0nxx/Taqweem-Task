@@ -1,0 +1,16 @@
+version: "3"
+services:
+  app:
+    container_name: tqweem
+    restart: always
+    build: .
+    ports:
+      - "5000:5000"
+    links:
+      - mongo
+    depends_on:
+      - mongo
+  mongo:
+    image: mongo
+    ports:
+      - "27018:27017"
