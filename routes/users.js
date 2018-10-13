@@ -44,11 +44,11 @@ router.post("/", async (req, res) => {
   try {
     upload(req, res, async err => {
       /* start avatar upload check */
-      if (err) return res.json(err);
-      else if (!req.file)
-        return res.status(400).json("Error : no file selected");
-      else if (req.file.size > 300000)
-        return res.status(400).json("Error : file shouldn't exceed 300KB");
+      if (err) {
+        if (err.code === "LIMIT_FILE_SIZE")
+          return res.status(400).json("Error : file shouldn't exceed 300KB");
+        return res.status(400).json(err);
+      } else if (!req.file) return res.json("Error : no file selected");
       const avatarPath = req.file.path.replace(/\\/g, "/");
       /*end avatar uploadt check */
       ///////////////////////////////////////////////////
@@ -78,10 +78,11 @@ router.put("/update/me", Auth, async (req, res) => {
   try {
     upload(req, res, err => {
       /* start avatar upload check */
-      if (err) return res.json(err);
-      else if (!req.file) return res.json("Error : no file selected");
-      if (req.file.size > 300000)
-        return res.json("Error : file shouldn't exceed 300KB");
+      if (err) {
+        if (err.code === "LIMIT_FILE_SIZE")
+          return res.status(400).json("Error : file shouldn't exceed 300KB");
+        return res.status(400).json(err);
+      } else if (!req.file) return res.json("Error : no file selected");
 
       const avatarPath = req.file.path.replace(/\\/g, "/");
       updatedData.avatar = avatarPath;
@@ -115,10 +116,11 @@ router.delete("/delete/me", Auth, async (req, res) => {
 router.post("/upload", async (req, res) => {
   try {
     upload(req, res, err => {
-      if (err) return res.status(400).json(err);
-      else if (!req.file) return res.json("Error : no file selected");
-      if (req.file.size > 300000)
-        return res.json("Error : file shouldn't exceed 300KB");
+      if (err) {
+        if (err.code === "LIMIT_FILE_SIZE")
+          return res.status(400).json("Error : file shouldn't exceed 300KB");
+        return res.status(400).json(err);
+      } else if (!req.file) return res.json("Error : no file selected");
       const avatarPath = req.file.path.replace(/\\/g, "/");
       res.json(avatarPath);
     });
