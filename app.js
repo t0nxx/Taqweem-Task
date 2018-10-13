@@ -17,5 +17,5 @@ app.use("/users", Users);
 app.use("/login", Login);
 app.use("/uploads/images", express.static("uploads/images"));
 const port = 5000 || process.env.PORT;
-app.listen(port, () => console.log(`server running on port ${port}`));
 exports.port = port;
+app.listen(port, () => console.log(`server running on port ${port}`));

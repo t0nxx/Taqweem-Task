@@ -6,6 +6,8 @@ const bcrypt = require("bcrypt");
 const Auth = require("../middlewares/auth");
 const multer = require("multer");
 const { upload } = require("../middlewares/uploader");
+/* here to make avatar path set dynamically */
+const port = require("../app");
 
 /* get all users " i won't set authentication here so that
  u could display all users without login " */
@@ -24,16 +26,16 @@ router.get("/", async (req, res) => {
 
 router.post("/", async (req, res) => {
   const validateInputs = {
-    username: req.body.username,
-    email: req.body.email,
-    password: req.body.password,
-    firstName: req.body.firstName,
-    lastName: req.body.lastName,
-    avatar: req.body.avatar
+    username: req.query.username,
+    email: req.query.email,
+    password: req.query.password,
+    firstName: req.query.firstName,
+    lastName: req.query.lastName,
+    avatar: req.query.avatar
   };
   // validate user inputs
   const { error } = validateUser(validateInputs);
-  if (error) return res.status(400).json(error.details[0].message);
+  if (error) return res.status(400).send(error.details[0].message);
 
   const user = new Users(validateInputs);
 
@@ -49,7 +51,10 @@ router.post("/", async (req, res) => {
           return res.status(400).json("Error : file shouldn't exceed 300KB");
         return res.status(400).json(err);
       } else if (!req.file) return res.json("Error : no file selected");
-      const avatarPath = req.file.path.replace(/\\/g, "/");
+      const uploadPath = req.file.path.replace(/\\/g, "/");
+      const avatarPath = `${req.protocol}://${req.hostname}:${
+        port.port
+      }/${uploadPath}`;
       /*end avatar uploadt check */
       ///////////////////////////////////////////////////
       /*start existing check */
@@ -66,43 +71,58 @@ router.post("/", async (req, res) => {
     res.json(error.message);
   }
 });
+/* here u can retrive ur data by providing  jwt token 
+"Authorization" header the token will expiresIn 15 minutes*/
+router.get("/about/me", Auth, async (req, res) => {
+  try {
+    const user = await Users.findOneAndRemove({
+      _id: req.user._id
+    }).select("-__v -_id -password");
+    res.json(user);
+  } catch (error) {
+    res.json(error.message);
+  }
+});
 
 /* here u can update ur personal data by providing the token with
-"Authorization" header the token will expiresIn 2 minutes*/
+"Authorization" header the token will expiresIn 15 minutes*/
 router.put("/update/me", Auth, async (req, res) => {
-  const updatedData = req.body;
-  // if (Object.keys(updatedData).length == 0)
-  //   return res.status(400).json("no entred data to update");
+  const updatedData = req.query;
+
   const { error } = validateUpdateUser(updatedData);
   if (error) return res.json(error.details[0].message);
   try {
-    upload(req, res, err => {
+    upload(req, res, async err => {
       /* start avatar upload check */
       if (err) {
         if (err.code === "LIMIT_FILE_SIZE")
           return res.status(400).json("Error : file shouldn't exceed 300KB");
         return res.status(400).json(err);
-      } else if (!req.file) return res.json("Error : no file selected");
-
-      const avatarPath = req.file.path.replace(/\\/g, "/");
-      updatedData.avatar = avatarPath;
-
+      } else if (!req.file) {
+        if (Object.keys(updatedData).length == 0)
+          return res.status(400).json("no entred data to update");
+      } else if (req.file) {
+        const uploadPath = req.file.path.replace(/\\/g, "/");
+        const avatarPath = `${req.protocol}://${req.hostname}:${
+          port.port
+        }/${uploadPath}`;
+        updatedData.avatar = avatarPath;
+      }
       /*end avatar upload check */
+      if (updatedData.password) {
+        updatedData.password = await bcrypt.hash(updatedData.password, 10);
+      }
+
+      await Users.findOneAndUpdate({ _id: req.user._id }, updatedData);
+      res.json("Data update successfully");
     });
-
-    if (updatedData.password) {
-      updatedData.password = await bcrypt.hash(updatedData.password, 10);
-    }
-
-    await Users.findOneAndUpdate({ _id: req.user._id }, updatedData);
-    res.json("Data update successfully");
   } catch (error) {
     res.json(error.message);
   }
 });
 
 /* here u can delete ur profile by providing the token with
-"Authorization" header  the token will expiresIn 2 minutes */
+"Authorization" header  the token will expiresIn 15 minutes */
 
 router.delete("/delete/me", Auth, async (req, res) => {
   try {
